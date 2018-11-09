@@ -1,4 +1,4 @@
-# att3
+# Student Messaging Services
 
 A new Flutter application.
 
