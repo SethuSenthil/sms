@@ -1,14 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 //Everything is under here!
 
+//init stuff
+final GoogleSignIn _googleSignIn = GoogleSignIn();
+final FirebaseAuth _auth = FirebaseAuth.instance;
+String userName;
+
+bool isAuth = false;
+bool isTapAuth = false;
+
+Future<FirebaseUser> _handleSignIn() async {
+  GoogleSignInAccount googleUser = await _googleSignIn.signIn();
+  GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+  isAuth = true;
+  isTapAuth = true;
+  FirebaseUser user = await _auth.signInWithGoogle(
+    accessToken: googleAuth.accessToken,
+    idToken: googleAuth.idToken,
+  );
+  print("signed in " + user.displayName);
+  userName = user.displayName;
+  return user;
+}
+
 void main() {
+  Widget whatHomeScreen;
+  if (isAuth == true) {
+    //good job the user logged in
+    whatHomeScreen = MessageDisplay();
+  } else {
+    //get yo as to the login screen
+    whatHomeScreen = FirstScreen();
+  };
   runApp(MaterialApp(
     title: 'Student Messages Services',
-    home: FirstScreen(),
+
+    home: whatHomeScreen,
   ));
 }
+
+
+Future<FirebaseUser> _handleSignOut() async {
+  GoogleSignInAccount googleUser = await _googleSignIn.signOut();
+}
+
 
 class FirstScreen extends StatelessWidget {
   @override
@@ -53,8 +93,8 @@ class FirstScreen extends StatelessWidget {
 //custom made
 class TextBoxer extends StatelessWidget {
   final String text;
-
-  TextBoxer(this.text);
+  final TextEditingController controlFun;
+  TextBoxer(this.text, this.controlFun);
 
   Widget build(context) {
     return new Container(
@@ -63,7 +103,7 @@ class TextBoxer extends StatelessWidget {
       height: 40.0,
       child: TextField(
         autofocus: true,
-          //controller: ,
+          controller: controlFun,
         decoration: InputDecoration(
             border: InputBorder.none,
             hintText: text
@@ -83,8 +123,8 @@ class LogInScreen extends StatelessWidget {
         body:
         Column(
             children: <Widget>[
-              new TextBoxer('Email or Phone'), //to get the values these you will need to paste TextBoxer class code and uncomment the controller
-              new TextBoxer('Password'),// I did this so its more readable at first site
+              new TextBoxer('Email or Phone', null), //replace null with the function u want to do
+              new TextBoxer('Password', null),
               Center(
                 child:
                 RaisedButton(
@@ -94,7 +134,7 @@ class LogInScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => SelectSchool()),
+                      MaterialPageRoute(builder: (context) => MessageDisplay()),
                     );
                   },
                 )
@@ -115,9 +155,19 @@ class SignUpScreen extends StatelessWidget {
         body:
         Column(
             children: <Widget>[
-              new TextBoxer('Phone or Number'),
-              new TextBoxer('Password'),
-              new TextBoxer('Confrim Password'),
+              new TextBoxer('Phone or Number', null),
+              new TextBoxer('Password', null),
+              new TextBoxer('Confrim Password', null),
+              Center(
+                child:
+                RaisedButton(
+                  color: Colors.redAccent,
+                  textColor: Colors.white,
+                  child: Text('Signup With Google'),
+                  onPressed: _handleSignIn,
+                )
+                  ,
+              ),
               Center(
                 child:
                 RaisedButton(
@@ -319,12 +369,37 @@ class MessageDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Student Messages Services'),
-      ),
-      body: Center(
-          child:
-          Text('Screen Loaded, This page is in progress')
+      appBar: AppBar(title: Text('Messages')),
+      body: Center(child: Text('Page Loaded. But its still being built.')),
+      drawer: Drawer(
+        // Add a ListView to the drawer. This ensures the user can scroll
+        // through the options in the Drawer if there isn't enough vertical
+        // space to fit everything.
+        child: ListView(
+          // Important: Remove any padding from the ListView.
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            DrawerHeader(
+              child: Text(userName),
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+            ),
+            ListTile(
+              title: Text('Profile'),
+              onTap: () {
+                // Update the state of the app
+                // ...
+                // Then close the drawer
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              title: Text('Sign Out'),
+              onTap: _handleSignOut,
+            ),
+          ],
+        ),
       ),
     );
   }
